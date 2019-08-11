@@ -18,16 +18,13 @@ func Login(c echo.Context) error {
 	if err := c.Bind(&user); err != nil {
 		return err
 	}
-
 	if user.Username != "jon" || user.Password != "shhh!" {
 		return echo.ErrUnauthorized
 	}
-
 	token, err := createToken("John snow", []string{"admin"})
 	if err != nil {
 		return err
 	}
-
 	return c.JSON(http.StatusOK, map[string]string{
 		"token": token,
 	})

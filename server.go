@@ -4,49 +4,25 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mhewedy/echo-example/controllers"
+	"github.com/mhewedy/echo-example/util"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"os"
 )
 
-func SkipperFn(skipURLs []string) func(echo.Context) bool {
-	return func(context echo.Context) bool {
-		for _, url := range skipURLs {
-			if url == context.Request().URL.String() {
-				return true
-			}
-		}
-		return false
-	}
-}
-
-type TeeWriter struct {
-	w []io.Writer
-}
-
-func (t TeeWriter) Write(p []byte) (n int, err error) {
-	for _, writer := range t.w {
-		n, err = writer.Write(p)
-		if err != nil {
-			return n, err
-		}
-	}
-	return
-}
-
 func main() {
 	e := echo.New()
 
 	// Logger
-	e.Logger.SetOutput(TeeWriter{[]io.Writer{
+	e.Logger.SetOutput(util.NewTeeWriter([]io.Writer{
 		os.Stdout, &lumberjack.Logger{
 			Filename:   "/tmp/myapp.log",
 			MaxSize:    500,
-			MaxBackups: 3,
 			MaxAge:     28,
+			MaxBackups: 3,
 			Compress:   true,
 		},
-	}})
+	}))
 
 	// Middleware
 	e.Use(middleware.Recover())
@@ -54,7 +30,7 @@ func main() {
 	e.Use(middleware.JWTWithConfig(
 		middleware.JWTConfig{
 			SigningKey: []byte("secret"),
-			Skipper:    SkipperFn([]string{"/api/v1/login", "/"}),
+			Skipper:    util.SkipperFn([]string{"/api/v1/login", "/"}),
 		}))
 
 	// Routes
